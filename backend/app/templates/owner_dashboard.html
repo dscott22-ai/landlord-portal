@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Owner Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.08);
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #fafafa;
+        }
+
+        button, select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .logout {
+            float: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a class="logout" href="/logout">Logout</a>
+
+        <h1>Owner Dashboard</h1>
+        <p>Welcome {{ user.name }}</p>
+        <p>Email: {{ user.email }}</p>
+
+        <h2>Payments</h2>
+        <button onclick="loadPayments()">Refresh Payments</button>
+        <div id="payments"></div>
+
+        <h2>Maintenance Requests</h2>
+        <button onclick="loadRequests()">Refresh Requests</button>
+        <div id="requests"></div>
+    </div>
+
+    <script>
+        async function loadPayments() {
+            const response = await fetch("/owner/payments");
+            const data = await response.json();
+
+            const div = document.getElementById("payments");
+            div.innerHTML = "";
+
+            if (!data.payments || data.payments.length === 0) {
+                div.innerHTML = "<p>No payments recorded yet.</p>";
+                return;
+            }
+
+            data.payments.forEach(p => {
+                div.innerHTML += `
+                    <div class="card">
+                        <b>Payment #${p.id}</b><br>
+                        <b>Tenant:</b> ${p.tenant_name}<br>
+                        <b>Property:</b> ${p.property_name}<br>
+                        <b>Unit:</b> ${p.unit_label}<br>
+                        <b>Amount:</b> $${p.amount}<br>
+                        <b>Method:</b> ${p.method}<br>
+                        <b>Status:</b> ${p.status}
+                    </div>
+                `;
+            });
+        }
+
+        async function updateStatus(requestId, newStatus) {
+            const response = await fetch(`/owner/maintenance/${requestId}`, {
+                method: "PUT",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert(data.detail || "Status update failed.");
+                return;
+            }
+
+            loadRequests();
+        }
+
+        async function loadRequests() {
+            const response = await fetch("/owner/maintenance");
+            const data = await response.json();
+
+            const div = document.getElementById("requests");
+            div.innerHTML = "";
+
+            if (!data.requests || data.requests.length === 0) {
+                div.innerHTML = "<p>No maintenance requests yet.</p>";
+                return;
+            }
+
+            data.requests.forEach(r => {
+               div.innerHTML += `
+    <div class="card">
+        <b>Request #${r.id}</b><br>
+        <b>Tenant:</b> ${r.tenant_name}<br>
+        <b>Property:</b> ${r.property_name}<br>
+        <b>Unit:</b> ${r.unit_label}<br>
+        <b>Category:</b> ${r.category}<br>
+        <b>Priority:</b> ${r.priority}<br>
+        <b>Location:</b> ${r.location}<br>
+        <b>Description:</b> ${r.description}<br>
+        <b>Status:</b> ${r.status}<br>
+        <b>Photos:</b><br>
+        ${r.photos.map(photo => `<img src="${photo}" style="max-width:200px;display:block;margin-top:10px;border-radius:8px;">`).join("")}
+        <br>
+        <label>Update Status</label>
+        <select onchange="updateStatus(${r.id}, this.value)">
+            <option value="">Select</option>
+            <option value="Submitted">Submitted</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+        </select>
+    </div>
+`;
+            });
+        }
+
+        loadPayments();
+        loadRequests();
+    </script>
+</body>
+</html>

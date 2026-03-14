@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Landlord Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: #1f2937;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        h2, h3 {
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            margin-top: 12px;
+            font-weight: bold;
+        }
+
+        input, select, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 6px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .pay-box {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .small {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .panel-box {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #fafafa;
+        }
+
+        hr {
+            margin: 24px 0;
+        }
+
+        @media (max-width: 800px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Landlord Portal</h1>
+        <p>Tenant and Owner Demo Portal</p>
+    </header>
+
+    <div class="container">
+        <div class="grid">
+
+            <div class="card">
+                <h2>Tenant Portal</h2>
+
+                <label>Tenant Name</label>
+                <input type="text" id="tenant_name" value="John Doe" />
+
+                <label>Property Name</label>
+                <input type="text" id="property_name" value="Maple Apartments" />
+
+                <label>Unit</label>
+                <input type="text" id="unit_label" value="Apt 3" />
+
+                <div class="pay-box">
+                    <h3>Rent Payment</h3>
+
+                    <label>Monthly Rent</label>
+                    <input type="number" id="rent_amount" value="1200" />
+
+                    <label>Payment Method</label>
+                    <select id="payment_method">
+                        <option>Bank Transfer (ACH)</option>
+                        <option>Card</option>
+                        <option>Zelle</option>
+                    </select>
+
+                    <p class="small">ACH is recommended for rent because fees are lower.</p>
+
+                    <button onclick="payRent()">Pay Rent</button>
+
+                    <div id="payment_result" style="margin-top: 12px;"></div>
+                </div>
+
+                <hr />
+
+                <h3>Submit Maintenance Request</h3>
+
+                <label>Category</label>
+                <select id="category">
+                    <option>Plumbing</option>
+                    <option>Electrical</option>
+                    <option>HVAC</option>
+                    <option>Appliance</option>
+                    <option>Other</option>
+                </select>
+
+                <label>Priority</label>
+                <select id="priority">
+                    <option>Low</option>
+                    <option>Medium</option>
+                    <option>High</option>
+                </select>
+
+                <label>Location</label>
+                <input type="text" id="location" placeholder="Kitchen" />
+
+                <label>Description</label>
+                <textarea id="description" rows="4" placeholder="Describe the issue"></textarea>
+
+                <label>Entry Permission</label>
+                <select id="entry_permission">
+                    <option>Call before entering</option>
+                    <option>May enter if I’m not home</option>
+                </select>
+
+                <button onclick="submitMaintenance()">Submit Request</button>
+            </div>
+
+            <div class="card">
+                <h2>Owner Portal</h2>
+
+                <h3>Payment History</h3>
+                <button onclick="loadPayments()">Refresh Payments</button>
+                <div id="payments" style="margin-top: 20px;"></div>
+
+                <hr />
+
+                <h3>Maintenance Requests</h3>
+                <button onclick="loadRequests()">Refresh Requests</button>
+                <div id="requests" style="margin-top: 20px;"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        async function payRent() {
+            const payload = {
+                tenant_name: document.getElementById("tenant_name").value,
+                property_name: document.getElementById("property_name").value,
+                unit_label: document.getElementById("unit_label").value,
+                amount: parseFloat(document.getElementById("rent_amount").value),
+                method: document.getElementById("payment_method").value,
+                status: "Paid"
+            };
+
+            const response = await fetch("/payments/pay-rent", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            document.getElementById("payment_result").innerHTML = `
+                <p><strong>${data.message}</strong></p>
+                <p>Amount: $${data.payment.amount}</p>
+                <p>Method: ${data.payment.method}</p>
+            `;
+
+            loadPayments();
+        }
+
+        async function submitMaintenance() {
+            const payload = {
+                tenant_name: document.getElementById("tenant_name").value,
+                property_name: document.getElementById("property_name").value,
+                unit_label: document.getElementById("unit_label").value,
+                category: document.getElementById("category").value,
+                priority: document.getElementById("priority").value,
+                location: document.getElementById("location").value,
+                description: document.getElementById("description").value,
+                entry_permission: document.getElementById("entry_permission").value,
+                status: "Submitted"
+            };
+
+            const response = await fetch("/maintenance/request", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            alert(data.message);
+            loadRequests();
+        }
+
+        async function loadPayments() {
+            const response = await fetch("/owner/payments");
+            const data = await response.json();
+
+            const paymentsDiv = document.getElementById("payments");
+            paymentsDiv.innerHTML = "";
+
+            if (data.count === 0) {
+                paymentsDiv.innerHTML = "<p>No rent payments recorded yet.</p>";
+                return;
+            }
+
+            data.payments.forEach(payment => {
+                const card = document.createElement("div");
+                card.className = "panel-box";
+                card.innerHTML = `
+                    <p><strong>Payment #${payment.id}</strong></p>
+                    <p><strong>Tenant:</strong> ${payment.tenant_name}</p>
+                    <p><strong>Property:</strong> ${payment.property_name}</p>
+                    <p><strong>Unit:</strong> ${payment.unit_label}</p>
+                    <p><strong>Amount:</strong> $${payment.amount}</p>
+                    <p><strong>Method:</strong> ${payment.method}</p>
+                    <p><strong>Status:</strong> ${payment.status}</p>
+                `;
+                paymentsDiv.appendChild(card);
+            });
+        }
+
+        async function loadRequests() {
+            const response = await fetch("/owner/maintenance");
+            const data = await response.json();
+
+            const requestsDiv = document.getElementById("requests");
+            requestsDiv.innerHTML = "";
+
+            if (data.count === 0) {
+                requestsDiv.innerHTML = "<p>No maintenance requests yet.</p>";
+                return;
+            }
+
+            data.requests.forEach(request => {
+                const card = document.createElement("div");
+                card.className = "panel-box";
+                card.innerHTML = `
+                    <p><strong>Request #${request.id || "N/A"}</strong></p>
+                    <p><strong>Tenant:</strong> ${request.tenant_name}</p>
+                    <p><strong>Property:</strong> ${request.property_name}</p>
+                    <p><strong>Unit:</strong> ${request.unit_label}</p>
+                    <p><strong>Category:</strong> ${request.category}</p>
+                    <p><strong>Priority:</strong> ${request.priority}</p>
+                    <p><strong>Location:</strong> ${request.location}</p>
+                    <p><strong>Description:</strong> ${request.description}</p>
+                    <p><strong>Status:</strong> ${request.status}</p>
+                `;
+                requestsDiv.appendChild(card);
+            });
+        }
+
+        loadPayments();
+        loadRequests();
+    </script>
+</body>
+</html>

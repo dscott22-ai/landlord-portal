@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tenant Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.08);
+        }
+
+        input, select, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            margin-top: 15px;
+            cursor: pointer;
+        }
+
+        .section {
+            margin-top: 30px;
+        }
+
+        .small {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .logout {
+            float: right;
+        }
+
+        #payment_result {
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a class="logout" href="/logout">Logout</a>
+
+        <h1>Tenant Dashboard</h1>
+        <p>Welcome {{ user.name }}</p>
+        <p>Email: {{ user.email }}</p>
+
+        <div class="section">
+            <h2>Pay Rent</h2>
+
+            <label>Property</label>
+            <input id="property_name" value="Maple Apartments">
+
+            <label>Unit</label>
+            <input id="unit_label" value="Apt 3">
+
+            <label>Rent Amount</label>
+            <input id="rent_amount" type="number" value="1200">
+
+            <label>Payment Method</label>
+            <select id="payment_method">
+                <option>ACH</option>
+                <option>Card</option>
+                <option>Zelle</option>
+            </select>
+
+            <p class="small">ACH is recommended for lower fees.</p>
+
+            <button onclick="payRent()">Pay Rent</button>
+
+            <div id="payment_result"></div>
+        </div>
+
+        <div class="section">
+            <h2>Maintenance Request</h2>
+
+            <label>Category</label>
+            <select id="category">
+                <option>Plumbing</option>
+                <option>Electrical</option>
+                <option>HVAC</option>
+                <option>Appliance</option>
+                <option>Other</option>
+            </select>
+
+            <label>Priority</label>
+            <select id="priority">
+                <option>Low</option>
+                <option>Medium</option>
+                <option>High</option>
+            </select>
+
+            <label>Location</label>
+            <input id="location">
+
+            <label>Description</label>
+            <textarea id="description"></textarea>
+
+            <label>Upload Photos</label>
+            <input type="file" id="photos" multiple accept="image/*">
+
+            <label>Entry Permission</label>
+            <select id="entry_permission">
+                <option>Call before entering</option>
+                <option>May enter if not home</option>
+            </select>
+
+            <button onclick="submitMaintenance()">Submit Request</button>
+        </div>
+    </div>
+
+    <script>
+        async function payRent() {
+            const payload = {
+                tenant_name: "{{ user.name }}",
+                property_name: document.getElementById("property_name").value,
+                unit_label: document.getElementById("unit_label").value,
+                amount: parseFloat(document.getElementById("rent_amount").value),
+                method: document.getElementById("payment_method").value,
+                status: "Paid"
+            };
+
+            try {
+                const response = await fetch("/payments/pay-rent", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    document.getElementById("payment_result").innerHTML =
+                        `<p style="color:red;"><b>Payment failed:</b> ${JSON.stringify(data)}</p>`;
+                    return;
+                }
+
+                document.getElementById("payment_result").innerHTML =
+                    `<p><b>${data.message}</b></p>
+                     <p>Amount: $${data.payment.amount}</p>
+                     <p>Method: ${data.payment.method}</p>`;
+            } catch (error) {
+                document.getElementById("payment_result").innerHTML =
+                    `<p style="color:red;"><b>Error:</b> ${error}</p>`;
+            }
+        }
+
+        async function submitMaintenance() {
+            const description = document.getElementById("description").value;
+            const photoInput = document.getElementById("photos");
+
+            if (!description.trim()) {
+                alert("Description required.");
+                return;
+            }
+
+            if (photoInput.files.length === 0) {
+                alert("At least one photo is required.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("tenant_name", "{{ user.name }}");
+            formData.append("property_name", document.getElementById("property_name").value);
+            formData.append("unit_label", document.getElementById("unit_label").value);
+            formData.append("category", document.getElementById("category").value);
+            formData.append("priority", document.getElementById("priority").value);
+            formData.append("location", document.getElementById("location").value);
+            formData.append("description", description);
+            formData.append("entry_permission", document.getElementById("entry_permission").value);
+            formData.append("status", "Submitted");
+
+            for (let i = 0; i < photoInput.files.length; i++) {
+                formData.append("photos", photoInput.files[i]);
+            }
+
+            const response = await fetch("/maintenance/request", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert(data.detail || "Maintenance request failed.");
+                return;
+            }
+
+            alert(data.message);
+        }
+    </script>
+</body>
+</html>
