@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
+from pydantic import BaseModel
 from typing import Optional
 import os
 import shutil
@@ -10,6 +11,10 @@ maintenance_requests = []
 
 UPLOAD_DIR = "app/uploads/maintenance"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+class StatusUpdate(BaseModel):
+    status: str
 
 
 @router.post("/maintenance/request")
@@ -99,11 +104,10 @@ def get_all_maintenance_requests(property_name: Optional[str] = Query(default=No
 
 
 @router.put("/owner/maintenance/{request_id}")
-def update_maintenance_status(request_id: int, update: dict):
+def update_maintenance_status(request_id: int, update: StatusUpdate):
     valid_statuses = ["Submitted", "In Progress", "Completed"]
-    new_status = update.get("status")
 
-    if new_status not in valid_statuses:
+    if update.status not in valid_statuses:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid status. Must be one of: {valid_statuses}"
@@ -111,7 +115,7 @@ def update_maintenance_status(request_id: int, update: dict):
 
     for request in maintenance_requests:
         if request["id"] == request_id:
-            request["status"] = new_status
+            request["status"] = update.status
             return {
                 "message": "Maintenance request updated successfully",
                 "request": request

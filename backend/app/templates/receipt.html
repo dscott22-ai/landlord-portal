@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Receipt</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f6f8;
+            padding: 40px;
+        }
+
+        .receipt {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .row {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="receipt">
+    <h1>Payment Receipt</h1>
+
+    <div class="row"><b>Receipt #:</b> {{ payment.id }}</div>
+    <div class="row"><b>Tenant:</b> {{ payment.tenant_name }}</div>
+    <div class="row"><b>Property:</b> {{ payment.property_name }}</div>
+    <div class="row"><b>Unit:</b> {{ payment.unit_label }}</div>
+    <div class="row"><b>Amount Paid:</b> ${{ payment.amount }}</div>
+    <div class="row"><b>Payment Method:</b> {{ payment.method }}</div>
+    <div class="row"><b>Status:</b> {{ payment.status }}</div>
+</div>
+</body>
+</html>

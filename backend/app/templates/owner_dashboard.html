@@ -62,91 +62,118 @@
     </div>
 
     <script>
-        async function loadPayments() {
-            const response = await fetch("/owner/payments");
-            const data = await response.json();
+    async function loadPayments() {
+        const response = await fetch("/owner/payments");
+        const data = await response.json();
 
-            const div = document.getElementById("payments");
-            div.innerHTML = "";
+        const div = document.getElementById("payments");
+        div.innerHTML = "";
 
-            if (!data.payments || data.payments.length === 0) {
-                div.innerHTML = "<p>No payments recorded yet.</p>";
-                return;
-            }
-
-            data.payments.forEach(p => {
-                div.innerHTML += `
-                    <div class="card">
-                        <b>Payment #${p.id}</b><br>
-                        <b>Tenant:</b> ${p.tenant_name}<br>
-                        <b>Property:</b> ${p.property_name}<br>
-                        <b>Unit:</b> ${p.unit_label}<br>
-                        <b>Amount:</b> $${p.amount}<br>
-                        <b>Method:</b> ${p.method}<br>
-                        <b>Status:</b> ${p.status}
-                    </div>
-                `;
-            });
+        if (!data.payments || data.payments.length === 0) {
+            div.innerHTML = "<p>No payments recorded yet.</p>";
+            return;
         }
 
-        async function updateStatus(requestId, newStatus) {
-            const response = await fetch(`/owner/maintenance/${requestId}`, {
-                method: "PUT",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ status: newStatus })
-            });
+        data.payments.forEach(p => {
+            div.innerHTML += `
+                <div class="card">
+                    <b>Payment #${p.id}</b><br>
+                    <b>Tenant:</b> ${p.tenant_name}<br>
+                    <b>Property:</b> ${p.property_name}<br>
+                    <b>Unit:</b> ${p.unit_label}<br>
+                    <b>Amount:</b> $${p.amount}<br>
+                    <b>Method:</b> ${p.method}<br>
+                    <b>Status:</b> ${p.status}<br>
+                    ${p.proof_path ? `<b>Proof:</b><br><img src="${p.proof_path}" style="max-width:200px; display:block; margin-top:10px; border-radius:8px; border:1px solid #ccc;"><br>` : ""}
+                    ${p.status === "Pending Verification"
+                        ? `<button onclick="verifyPayment(${p.id})">Mark as Paid</button>`
+                        : ""}
+                    <br>
+                    <a href="/receipt/${p.id}" target="_blank">View Receipt</a>
+                </div>
+            `;
+        });
+    }
 
-            const data = await response.json();
+    async function verifyPayment(paymentId) {
+        const response = await fetch(`/owner/payments/${paymentId}/verify`, {
+            method: "PUT"
+        });
 
-            if (!response.ok) {
-                alert(data.detail || "Status update failed.");
-                return;
-            }
+        const data = await response.json();
 
-            loadRequests();
+        if (!response.ok) {
+            alert(data.detail || "Verification failed.");
+            return;
         }
 
-        async function loadRequests() {
-            const response = await fetch("/owner/maintenance");
-            const data = await response.json();
-
-            const div = document.getElementById("requests");
-            div.innerHTML = "";
-
-            if (!data.requests || data.requests.length === 0) {
-                div.innerHTML = "<p>No maintenance requests yet.</p>";
-                return;
-            }
-
-            data.requests.forEach(r => {
-               div.innerHTML += `
-    <div class="card">
-        <b>Request #${r.id}</b><br>
-        <b>Tenant:</b> ${r.tenant_name}<br>
-        <b>Property:</b> ${r.property_name}<br>
-        <b>Unit:</b> ${r.unit_label}<br>
-        <b>Category:</b> ${r.category}<br>
-        <b>Priority:</b> ${r.priority}<br>
-        <b>Location:</b> ${r.location}<br>
-        <b>Description:</b> ${r.description}<br>
-        <b>Status:</b> ${r.status}<br>
-        <b>Photos:</b><br>
-        ${r.photos.map(photo => `<img src="${photo}" style="max-width:200px;display:block;margin-top:10px;border-radius:8px;">`).join("")}
-        <br>
-        <label>Update Status</label>
-        <select onchange="updateStatus(${r.id}, this.value)">
-            <option value="">Select</option>
-            <option value="Submitted">Submitted</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-        </select>
-    </div>
-`;
-            });
-        }
-
+        alert(data.message);
         loadPayments();
+    }
+
+    async function updateStatus(requestId, newStatus) {
+        if (!newStatus) return;
+
+        const response = await fetch(`/owner/maintenance/${requestId}`, {
+            method: "PUT",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ status: newStatus })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert(data.detail || "Status update failed.");
+            return;
+        }
+
         loadRequests();
-    </script>
+    }
+
+    async function loadRequests() {
+        const response = await fetch("/owner/maintenance");
+        const data = await response.json();
+
+        const div = document.getElementById("requests");
+        div.innerHTML = "";
+
+        if (!data.requests || data.requests.length === 0) {
+            div.innerHTML = "<p>No maintenance requests yet.</p>";
+            return;
+        }
+
+        data.requests.forEach(r => {
+            div.innerHTML += `
+                <div class="card">
+                    <b>Request #${r.id}</b><br>
+                    <b>Tenant:</b> ${r.tenant_name}<br>
+                    <b>Property:</b> ${r.property_name}<br>
+                    <b>Unit:</b> ${r.unit_label}<br>
+                    <b>Category:</b> ${r.category}<br>
+                    <b>Priority:</b> ${r.priority}<br>
+                    <b>Location:</b> ${r.location}<br>
+                    <b>Description:</b> ${r.description}<br>
+                    <b>Status:</b> ${r.status}<br>
+                    <b>Photos:</b><br>
+                    ${r.photos.map(photo => `
+                        <img src="${photo}" alt="Maintenance Photo"
+                             style="max-width:200px; display:block; margin-top:10px; border-radius:8px; border:1px solid #ccc;">
+                    `).join("")}
+                    <br>
+                    <label>Update Status</label>
+                    <select onchange="updateStatus(${r.id}, this.value)">
+                        <option value="">Select</option>
+                        <option value="Submitted">Submitted</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+            `;
+        });
+    }
+
+    loadPayments();
+    loadRequests();
+</script>
 </body>
 </html>

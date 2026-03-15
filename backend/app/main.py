@@ -6,9 +6,13 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.routes.maintenance import router as maintenance_router
 from app.routes.payments import router as payments_router
+from app.routes.properties import router as properties_router
+from app.database import init_db
 from app.routes.users import router as users_router
 
 app = FastAPI()
+
+init_db()
 
 app.mount("/uploads", StaticFiles(directory="app/uploads"), name="uploads")
 
@@ -17,6 +21,8 @@ app.add_middleware(SessionMiddleware, secret_key="super-secret-key-change-this-l
 app.include_router(maintenance_router)
 app.include_router(payments_router)
 app.include_router(users_router)
+app.include_router(properties_router)
+
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -76,4 +82,24 @@ def admin_dashboard(request: Request):
     return templates.TemplateResponse(
         "admin_dashboard.html",
         {"request": request, "user": user}
+    )
+from app.database import get_connection
+from fastapi import HTTPException
+@app.get("/receipt/{payment_id}")
+def receipt_page(request: Request, payment_id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM payments WHERE id = ?", (payment_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+
+    payment = dict(row)
+
+    return templates.TemplateResponse(
+        "receipt.html",
+        {"request": request, "payment": payment}
     )

@@ -1,28 +1,49 @@
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
 from passlib.context import CryptContext
+from app.database import get_connection
 
 router = APIRouter()
 
-# Use pbkdf2_sha256 to avoid bcrypt compatibility issues
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
-
-users = [
-    {
-        "id": 1,
-        "name": "Admin",
-        "email": "admin@portal.com",
-        "password_hash": pwd_context.hash("Admin123!"),
-        "role": "admin"
-    }
-]
 
 
 def get_user_by_email(email: str):
-    for user in users:
-        if user["email"].lower() == email.lower():
-            return user
-    return None
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+    row = cursor.fetchone()
+
+    conn.close()
+
+    return dict(row) if row else None
+
+
+def ensure_admin_exists():
+    existing_admin = get_user_by_email("admin@portal.com")
+    if existing_admin:
+        return
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO users (name, email, password_hash, role)
+        VALUES (?, ?, ?, ?)
+    """, (
+        "Admin",
+        "admin@portal.com",
+        pwd_context.hash("Admin123!"),
+        "admin"
+    ))
+
+    conn.commit()
+    conn.close()
+
+
+# IMPORTANT: seed admin immediately when file loads
+ensure_admin_exists()
 
 
 @router.post("/signup")
@@ -37,15 +58,21 @@ def signup(
     if existing_user:
         return RedirectResponse(url="/login", status_code=303)
 
-    new_user = {
-        "id": len(users) + 1,
-        "name": name,
-        "email": email,
-        "password_hash": pwd_context.hash(password),
-        "role": role
-    }
+    conn = get_connection()
+    cursor = conn.cursor()
 
-    users.append(new_user)
+    cursor.execute("""
+        INSERT INTO users (name, email, password_hash, role)
+        VALUES (?, ?, ?, ?)
+    """, (
+        name,
+        email,
+        pwd_context.hash(password),
+        role
+    ))
+
+    conn.commit()
+    conn.close()
 
     return RedirectResponse(url="/login", status_code=303)
 
