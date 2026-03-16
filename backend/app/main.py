@@ -4,6 +4,8 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
+import os
+
 from app.routes.maintenance import router as maintenance_router
 from app.routes.payments import router as payments_router
 from app.routes.properties import router as properties_router
@@ -16,7 +18,8 @@ init_db()
 
 app.mount("/uploads", StaticFiles(directory="app/uploads"), name="uploads")
 
-app.add_middleware(SessionMiddleware, secret_key="super-secret-key-change-this-later")
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "dev-secret")
+)
 
 app.include_router(maintenance_router)
 app.include_router(payments_router)
