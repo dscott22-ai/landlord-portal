@@ -3,190 +3,387 @@
 <head>
     <title>Tenant Dashboard</title>
     <style>
+        :root {
+            --navy: #14213d;
+            --navy-light: #1f355e;
+            --slate: #5c677d;
+            --bg: #f6f8fb;
+            --card: #ffffff;
+            --gold: #c8a96b;
+            --border: #d9dee8;
+            --text: #1f2937;
+            --success-bg: #edf7f1;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
+            margin: 0;
             font-family: Arial, sans-serif;
-            background: #f4f6f8;
-            padding: 40px;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .topbar {
+            background: var(--navy);
+            color: white;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .topbar a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
         }
 
         .container {
-            max-width: 900px;
-            margin: auto;
+            max-width: 1100px;
+            margin: 28px auto;
+            padding: 0 20px 30px;
+        }
+
+        .welcome-card {
             background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.08);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: 0 8px 24px rgba(20, 33, 61, 0.06);
+            margin-bottom: 22px;
+        }
+
+        .welcome-card h2 {
+            margin: 0 0 8px 0;
+            color: var(--navy);
+        }
+
+        .welcome-card p {
+            margin: 0;
+            color: var(--slate);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: 0 8px 24px rgba(20, 33, 61, 0.06);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: var(--navy);
+        }
+
+        label {
+            display: block;
+            margin-top: 14px;
+            font-weight: bold;
+            color: var(--navy);
+            font-size: 14px;
         }
 
         input, select, textarea, button {
             width: 100%;
-            padding: 10px;
+            padding: 12px 14px;
             margin-top: 8px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            font-size: 15px;
+        }
+
+        input, select, textarea {
+            background: #fbfcfe;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--navy-light);
+            box-shadow: 0 0 0 3px rgba(31, 53, 94, 0.10);
         }
 
         button {
-            background: #2563eb;
+            background: var(--navy);
             color: white;
             border: none;
-            margin-top: 15px;
+            margin-top: 18px;
+            font-weight: bold;
             cursor: pointer;
         }
 
-        .section {
-            margin-top: 30px;
+        button:hover {
+            background: var(--navy-light);
         }
 
         .small {
             font-size: 13px;
-            color: #666;
+            color: var(--slate);
+            margin-top: 8px;
         }
 
-        .logout {
-            float: right;
+        .highlight-box {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 14px;
+            background: #f8fafc;
+            border: 1px solid var(--border);
         }
 
         #payment_result {
-            margin-top: 12px;
+            margin-top: 14px;
+            padding: 14px;
+            border-radius: 12px;
+            background: var(--success-bg);
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                padding: 18px 20px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <a class="logout" href="/logout">Logout</a>
-
-        <h1>Tenant Dashboard</h1>
-        <p>Welcome {{ user.name }}</p>
-        <p>Email: {{ user.email }}</p>
-
-        <div class="section">
-    <h2>Pay Rent</h2>
-
-    <label>Property</label>
-    <input id="property_name" value="Maple Apartments">
-
-    <label>Unit</label>
-    <input id="unit_label" value="Apt 3">
-
-    <label>Rent Amount</label>
-    <input id="rent_amount" type="number" value="1200">
-
-    <label>Payment Method</label>
-    <select id="payment_method" onchange="togglePaymentMethod()">
-        <option value="Zelle">Zelle</option>
-        <option value="ACH">Stripe / ACH</option>
-        <option value="Card">Stripe / Card</option>
-    </select>
-
-    <div id="zelle_box" style="margin-top:15px; padding:15px; background:#f8fafc; border-radius:10px;">
-        <p><b>Zelle Payment Instructions</b></p>
-        <p>Send payment to: <b>ownerzelle@email.com</b></p>
-        <p class="small">After sending payment through Zelle, upload your proof below for verification.</p>
-
-        <label>Zelle Payment Proof</label>
-        <input type="file" id="zelle_proof" accept="image/*,.pdf">
+    <div class="topbar">
+        <h1>Landlord Portal</h1>
+        <a href="/logout">Logout</a>
     </div>
 
-    <p class="small">ACH is recommended for lower fees. Zelle payments require owner verification.</p>
+    <div class="container">
+        <div class="welcome-card">
+            <h2>Welcome, {{ user.name }}</h2>
+            <p>{{ user.email }}</p>
+        </div>
 
-    <button onclick="payRent()">Submit Rent Payment</button>
+        <div class="grid">
+            <div class="card">
+                <h3>Pay Rent</h3>
 
-    <div id="payment_result"></div>
-</div>
+                <label>Property</label>
+                <input id="property_name" value="Maple Apartments">
 
-        <div class="section">
-            <h2>Maintenance Request</h2>
+                <label>Unit</label>
+                <input id="unit_label" value="Apt 3">
 
-            <label>Category</label>
-            <select id="category">
-                <option>Plumbing</option>
-                <option>Electrical</option>
-                <option>HVAC</option>
-                <option>Appliance</option>
-                <option>Other</option>
-            </select>
+                <label>Rent Amount</label>
+                <input id="rent_amount" type="number" value="1200">
 
-            <label>Priority</label>
-            <select id="priority">
-                <option>Low</option>
-                <option>Medium</option>
-                <option>High</option>
-            </select>
+                <label>Payment Method</label>
+                <select id="payment_method" onchange="togglePaymentMethod()">
+                    <option value="Zelle">Zelle</option>
+                    <option value="ACH">Stripe / ACH</option>
+                    <option value="Card">Stripe / Card</option>
+                </select>
 
-            <label>Location</label>
-            <input id="location">
+                <div id="zelle_box" class="highlight-box">
+                    <p><b style="color:#14213d;">Zelle Payment Instructions</b></p>
+                    <p class="small">Send payment to: <b>ownerzelle@email.com</b></p>
+                    <p class="small">Upload proof after sending payment. Owner will verify before it is marked paid.</p>
 
-            <label>Description</label>
-            <textarea id="description"></textarea>
+                    <label>Zelle Payment Proof</label>
+                    <input type="file" id="zelle_proof" accept="image/*,.pdf">
+                </div>
 
-            <label>Upload Photos</label>
-            <input type="file" id="photos" multiple accept="image/*">
+                <p class="small">ACH is recommended for lower fees. Zelle payments require owner verification.</p>
 
-            <label>Entry Permission</label>
-            <select id="entry_permission">
-                <option>Call before entering</option>
-                <option>May enter if not home</option>
-            </select>
+                <button onclick="payRent()">Submit Rent Payment</button>
 
-            <button onclick="submitMaintenance()">Submit Request</button>
+                <div id="payment_result"></div>
+            </div>
+
+            <div class="card">
+                <h3>Maintenance Request</h3>
+
+                <label>Category</label>
+                <select id="category">
+                    <option>Plumbing</option>
+                    <option>Electrical</option>
+                    <option>HVAC</option>
+                    <option>Appliance</option>
+                    <option>Other</option>
+                </select>
+
+                <label>Priority</label>
+                <select id="priority">
+                    <option>Low</option>
+                    <option>Medium</option>
+                    <option>High</option>
+                </select>
+
+                <label>Location</label>
+                <input id="location">
+
+                <label>Description</label>
+                <textarea id="description" rows="4"></textarea>
+
+                <label>Upload Photos</label>
+                <input type="file" id="photos" multiple accept="image/*">
+
+                <label>Entry Permission</label>
+                <select id="entry_permission">
+                    <option>Call before entering</option>
+                    <option>May enter if not home</option>
+                </select>
+
+                <button onclick="submitMaintenance()">Submit Request</button>
+            </div>
         </div>
     </div>
 
-   <script>
-    async function loadTenantUnit() {
-        const userId = "{{ user.id }}";
+    <script>
+        async function loadTenantUnit() {
+            const userId = "{{ user.id }}";
 
-        const response = await fetch(`/tenant/${userId}/unit`);
+            const response = await fetch(`/tenant/${userId}/unit`);
 
-        if (!response.ok) {
-            console.log("No tenant assignment found");
-            return;
+            if (!response.ok) {
+                console.log("No tenant assignment found");
+                return;
+            }
+
+            const data = await response.json();
+
+            document.getElementById("property_name").value = data.property_name;
+            document.getElementById("unit_label").value = data.unit_label;
+            document.getElementById("rent_amount").value = data.rent_amount;
         }
 
-        const data = await response.json();
+        function togglePaymentMethod() {
+            const method = document.getElementById("payment_method").value;
+            const zelleBox = document.getElementById("zelle_box");
 
-        document.getElementById("property_name").value = data.property_name;
-        document.getElementById("unit_label").value = data.unit_label;
-        document.getElementById("rent_amount").value = data.rent_amount;
-    }
-
-    function togglePaymentMethod() {
-        const method = document.getElementById("payment_method").value;
-        const zelleBox = document.getElementById("zelle_box");
-
-        if (method === "Zelle") {
-            zelleBox.style.display = "block";
-        } else {
-            zelleBox.style.display = "none";
+            if (method === "Zelle") {
+                zelleBox.style.display = "block";
+            } else {
+                zelleBox.style.display = "none";
+            }
         }
-    }
 
-    async function payRent() {
-        const method = document.getElementById("payment_method").value;
-        const tenantName = "{{ user.name }}";
-        const propertyName = document.getElementById("property_name").value;
-        const unitLabel = document.getElementById("unit_label").value;
-        const amount = parseFloat(document.getElementById("rent_amount").value);
+        async function payRent() {
+            const method = document.getElementById("payment_method").value;
+            const tenantName = "{{ user.name }}";
+            const propertyName = document.getElementById("property_name").value;
+            const unitLabel = document.getElementById("unit_label").value;
+            const amount = parseFloat(document.getElementById("rent_amount").value);
 
-        if (method === "Zelle") {
-            const proofInput = document.getElementById("zelle_proof");
+            if (method === "Zelle") {
+                const proofInput = document.getElementById("zelle_proof");
 
-            if (proofInput.files.length === 0) {
-                alert("Please upload Zelle payment proof.");
+                if (proofInput.files.length === 0) {
+                    alert("Please upload Zelle payment proof.");
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("tenant_name", tenantName);
+                formData.append("property_name", propertyName);
+                formData.append("unit_label", unitLabel);
+                formData.append("amount", amount);
+                formData.append("method", "Zelle");
+                formData.append("proof", proofInput.files[0]);
+
+                const response = await fetch("/payments/zelle-submit", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    document.getElementById("payment_result").innerHTML =
+                        `<p style="color:red;"><b>Error:</b> ${data.detail || "Zelle submission failed"}</p>`;
+                    return;
+                }
+
+                document.getElementById("payment_result").innerHTML =
+                    `<p><b>${data.message}</b></p>
+                     <p>Status: Pending Verification</p>`;
+                return;
+            }
+
+            const payload = {
+                tenant_name: tenantName,
+                property_name: propertyName,
+                unit_label: unitLabel,
+                amount: amount,
+                method: method,
+                status: "Paid"
+            };
+
+            try {
+                const response = await fetch("/payments/pay-rent", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    document.getElementById("payment_result").innerHTML =
+                        `<p style="color:red;"><b>Payment failed:</b> ${JSON.stringify(data)}</p>`;
+                    return;
+                }
+
+                document.getElementById("payment_result").innerHTML =
+                    `<p><b>${data.message}</b></p>
+                     <p>Status: Paid</p>
+                     <p>Method: ${method}</p>`;
+            } catch (error) {
+                document.getElementById("payment_result").innerHTML =
+                    `<p style="color:red;"><b>Error:</b> ${error}</p>`;
+            }
+        }
+
+        async function submitMaintenance() {
+            const description = document.getElementById("description").value;
+            const photoInput = document.getElementById("photos");
+
+            if (!description.trim()) {
+                alert("Description required.");
+                return;
+            }
+
+            if (photoInput.files.length === 0) {
+                alert("At least one photo is required.");
                 return;
             }
 
             const formData = new FormData();
-            formData.append("tenant_name", tenantName);
-            formData.append("property_name", propertyName);
-            formData.append("unit_label", unitLabel);
-            formData.append("amount", amount);
-            formData.append("method", "Zelle");
-            formData.append("proof", proofInput.files[0]);
+            formData.append("tenant_name", "{{ user.name }}");
+            formData.append("property_name", document.getElementById("property_name").value);
+            formData.append("unit_label", document.getElementById("unit_label").value);
+            formData.append("category", document.getElementById("category").value);
+            formData.append("priority", document.getElementById("priority").value);
+            formData.append("location", document.getElementById("location").value);
+            formData.append("description", description);
+            formData.append("entry_permission", document.getElementById("entry_permission").value);
+            formData.append("status", "Submitted");
 
-            const response = await fetch("/payments/zelle-submit", {
+            for (let i = 0; i < photoInput.files.length; i++) {
+                formData.append("photos", photoInput.files[i]);
+            }
+
+            const response = await fetch("/maintenance/request", {
                 method: "POST",
                 body: formData
             });
@@ -194,99 +391,17 @@
             const data = await response.json();
 
             if (!response.ok) {
-                document.getElementById("payment_result").innerHTML =
-                    `<p style="color:red;"><b>Error:</b> ${data.detail || "Zelle submission failed"}</p>`;
+                alert(data.detail || "Maintenance request failed.");
                 return;
             }
 
-            document.getElementById("payment_result").innerHTML =
-                `<p><b>${data.message}</b></p>
-                 <p>Status: Pending Verification</p>`;
-            return;
+            alert(data.message);
         }
 
-        const payload = {
-            tenant_name: tenantName,
-            property_name: propertyName,
-            unit_label: unitLabel,
-            amount: amount,
-            method: method,
-            status: "Paid"
+        window.onload = function() {
+            loadTenantUnit();
+            togglePaymentMethod();
         };
-
-        try {
-            const response = await fetch("/payments/pay-rent", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                document.getElementById("payment_result").innerHTML =
-                    `<p style="color:red;"><b>Payment failed:</b> ${JSON.stringify(data)}</p>`;
-                return;
-            }
-
-            document.getElementById("payment_result").innerHTML =
-                `<p><b>${data.message}</b></p>
-                 <p>Status: Paid</p>
-                 <p>Method: ${method}</p>`;
-        } catch (error) {
-            document.getElementById("payment_result").innerHTML =
-                `<p style="color:red;"><b>Error:</b> ${error}</p>`;
-        }
-    }
-
-    async function submitMaintenance() {
-        const description = document.getElementById("description").value;
-        const photoInput = document.getElementById("photos");
-
-        if (!description.trim()) {
-            alert("Description required.");
-            return;
-        }
-
-        if (photoInput.files.length === 0) {
-            alert("At least one photo is required.");
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append("tenant_name", "{{ user.name }}");
-        formData.append("property_name", document.getElementById("property_name").value);
-        formData.append("unit_label", document.getElementById("unit_label").value);
-        formData.append("category", document.getElementById("category").value);
-        formData.append("priority", document.getElementById("priority").value);
-        formData.append("location", document.getElementById("location").value);
-        formData.append("description", description);
-        formData.append("entry_permission", document.getElementById("entry_permission").value);
-        formData.append("status", "Submitted");
-
-        for (let i = 0; i < photoInput.files.length; i++) {
-            formData.append("photos", photoInput.files[i]);
-        }
-
-        const response = await fetch("/maintenance/request", {
-            method: "POST",
-            body: formData
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            alert(data.detail || "Maintenance request failed.");
-            return;
-        }
-
-        alert(data.message);
-    }
-
-    window.onload = function() {
-        loadTenantUnit();
-        togglePaymentMethod();
-    };
-</script>
+    </script>
 </body>
 </html>

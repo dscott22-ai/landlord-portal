@@ -1,13 +1,13 @@
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
 from pydantic import BaseModel
 from typing import Optional
+from app.database import get_connection
 import os
 import shutil
 from uuid import uuid4
+import json
 
 router = APIRouter()
-
-maintenance_requests = []
 
 UPLOAD_DIR = "app/uploads/maintenance"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -63,43 +63,62 @@ async def create_maintenance_request(
             detail="At least one valid photo is required."
         )
 
-    request_data = {
-        "id": len(maintenance_requests) + 1,
-        "tenant_name": tenant_name,
-        "property_name": property_name,
-        "unit_label": unit_label,
-        "category": category,
-        "priority": priority,
-        "location": location,
-        "description": description,
-        "entry_permission": entry_permission,
-        "photos": saved_photo_paths,
-        "status": status
-    }
+    conn = get_connection()
+    cursor = conn.cursor()
 
-    maintenance_requests.append(request_data)
+    cursor.execute("""
+        INSERT INTO maintenance_requests
+        (tenant_name, property_name, unit_label, category, priority, location, description, entry_permission, status, photos)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        tenant_name,
+        property_name,
+        unit_label,
+        category,
+        priority,
+        location,
+        description,
+        entry_permission,
+        status,
+        json.dumps(saved_photo_paths)
+    ))
+
+    conn.commit()
+    request_id = cursor.lastrowid
+    conn.close()
 
     return {
         "message": "Maintenance request submitted successfully",
-        "request": request_data
+        "request_id": request_id
     }
 
 
 @router.get("/owner/maintenance")
 def get_all_maintenance_requests(property_name: Optional[str] = Query(default=None)):
+    conn = get_connection()
+    cursor = conn.cursor()
+
     if property_name:
-        filtered_requests = [
-            request for request in maintenance_requests
-            if request["property_name"].lower() == property_name.lower()
-        ]
-        return {
-            "count": len(filtered_requests),
-            "requests": filtered_requests
-        }
+        cursor.execute("""
+            SELECT * FROM maintenance_requests
+            WHERE LOWER(property_name) = LOWER(?)
+            ORDER BY id DESC
+        """, (property_name,))
+    else:
+        cursor.execute("SELECT * FROM maintenance_requests ORDER BY id DESC")
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    requests = []
+    for row in rows:
+        item = dict(row)
+        item["photos"] = json.loads(item["photos"]) if item["photos"] else []
+        requests.append(item)
 
     return {
-        "count": len(maintenance_requests),
-        "requests": maintenance_requests
+        "count": len(requests),
+        "requests": requests
     }
 
 
@@ -113,12 +132,23 @@ def update_maintenance_status(request_id: int, update: StatusUpdate):
             detail=f"Invalid status. Must be one of: {valid_statuses}"
         )
 
-    for request in maintenance_requests:
-        if request["id"] == request_id:
-            request["status"] = update.status
-            return {
-                "message": "Maintenance request updated successfully",
-                "request": request
-            }
+    conn = get_connection()
+    cursor = conn.cursor()
 
-    raise HTTPException(status_code=404, detail="Maintenance request not found")
+    cursor.execute("SELECT * FROM maintenance_requests WHERE id = ?", (request_id,))
+    existing = cursor.fetchone()
+
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Maintenance request not found")
+
+    cursor.execute("""
+        UPDATE maintenance_requests
+        SET status = ?
+        WHERE id = ?
+    """, (update.status, request_id))
+
+    conn.commit()
+    conn.close()
+
+    return {"message": "Maintenance request updated successfully"}
